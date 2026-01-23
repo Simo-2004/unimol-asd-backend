@@ -1,0 +1,70 @@
+name: Deploy Backend Final
+
+on:
+  push:
+    branches: ["production"]
+
+env:
+  # CORREZIONE 1: Usiamo github.repository per evitare errori di battitura o doppi ghcr.io
+  # Questo restituirà automaticamente "Simo-2004/unimol-asd-backend" (tutto minuscolo è meglio)
+  IMAGE_NAME: simo-2004/unimol-asd-backend
+  CONTAINER_NAME: backend-django
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          # Qui costruiamo il tag completo correttamente
+          tags: ghcr.io/${{ env.IMAGE_NAME }}:latest
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          # Se qui ti dà ancora "missing host", controlla i Settings su GitHub!
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            # Login
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Pull
+            docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest
+
+            # Reset Container
+            docker stop ${{ env.CONTAINER_NAME }} || true
+            docker rm ${{ env.CONTAINER_NAME }} || true
+
+            # AVVIO con le credenziali "admin" allineate allo STEP A
+            docker run -d \
+              --name ${{ env.CONTAINER_NAME }} \
+              --restart unless-stopped \
+              --network unimol-net \
+              -p 8000:8000 \
+              -e DB_ENGINE=django.db.backends.postgresql \
+              -e DB_HOST=db-postgres \
+              -e DB_NAME=app_db \
+              -e DB_USER=admin \
+              -e DB_PASSWORD=adminpassword \
+              -e ALLOWED_HOSTS='*' \
+              -e DEBUG=1 \
+              ghcr.io/${{ env.IMAGE_NAME }}:latest

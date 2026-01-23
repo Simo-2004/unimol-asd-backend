@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_DB=app_db
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=adminpassword
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: .
+    restart: on-failure
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DB_NAME=app_db
+      - DB_USER=admin
+      - DB_PASSWORD=adminpassword
+      - DB_HOST=db
+
+  frontend:
+    build:
+      context: ../unimol-asd-frontend
+      dockerfile: ${FRONTEND_DOCKERFILE:-Dockerfile.prod}
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../unimol-asd-frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - INTERNAL_API_URL=${INTERNAL_API_URL:-http://backend:8000}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000/api}
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

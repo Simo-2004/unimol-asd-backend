@@ -1,0 +1,46 @@
+version: "3.8"
+# Configurazione per ambiente di PRODUZIONE
+services:
+  # 1. Il Database (Identico, ma protetto)
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_DB=app_db
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=adminpassword # La prende dalle var d'ambiente, non scriverla qui!
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Niente "ports: 5432:5432". Il DB è chiuso al pubblico.
+
+  # 2. Il Backend (Usa l'immagine di GitHub)
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY_BACKEND}:latest # Esempio: ghcr.io/lelepzz/backend-repo:latest
+    restart: always
+    depends_on:
+      - db
+    environment:
+      - DB_NAME=app_db
+      - DB_USER=admin
+      - DB_PASSWORD=adminpassword
+      - DB_HOST=db-postgres # Nome del servizio qui sopra
+      - ALLOWED_HOSTS=*
+      # In prod useremmo Gunicorn, ma per l'esame va bene il comando del Dockerfile
+    ports:
+      - "8000:8000" # Esposto per test o se il frontend chiama da fuori (browser)
+
+  # 3. Il Frontend (Usa l'immagine di GitHub)
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY_FRONTEND}:latest
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      # Nota: lato client (browser), il backend deve essere pubblico
+      - NEXT_PUBLIC_API_URL=http://${VPS_IP}:8000/api
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
