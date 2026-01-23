@@ -12,6 +12,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia tutto il codice (assicurati di avere un .dockerignore per escludere venv e __pycache__)
 COPY . /app/
 
-# Aspettiamo che il DB sia pronto ed eseguiamo le migrazioni all'avvio
-# Nota: "sh -c" è corretto per eseguire comandi multipli
-CMD sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+# Avvio del server (le migrazioni vanno eseguite manualmente per evitare reset del DB)
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
