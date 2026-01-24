@@ -5,8 +5,7 @@ on:
     branches: ["production"]
 
 env:
-  # CORREZIONE 1: Usiamo github.repository per evitare errori di battitura o doppi ghcr.io
-  # Questo restituirà automaticamente "Simo-2004/unimol-asd-backend" (tutto minuscolo è meglio)
+  
   IMAGE_NAME: simo-2004/unimol-asd-backend
   CONTAINER_NAME: backend-django
 
@@ -33,13 +32,13 @@ jobs:
         with:
           context: .
           push: true
-          # Qui costruiamo il tag completo correttamente
+          
           tags: ghcr.io/${{ env.IMAGE_NAME }}:latest
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
-          # Se qui ti dà ancora "missing host", controlla i Settings su GitHub!
+          
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
