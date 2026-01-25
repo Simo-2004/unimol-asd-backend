@@ -73,10 +73,9 @@ jobs:
         run: bandit -r . -ll || true
 
       # Passa sempre solo per scopi dimostrativi, rimuovere "|| true" in produzione
+      # Safety check senza installare requirements per evitare conflitti di versione
       - name: Run Safety Dependency Check
-        run: |
-          pip install -r requirements.txt
-          safety check || true
+        run: safety check --json || true
 
   # 4 Import Sorting Check
   isort:
